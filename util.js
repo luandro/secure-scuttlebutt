@@ -39,10 +39,34 @@ exports.wait = function () {
     }
   }
 }
-exports.formatStream = function (keys, values) {
+
+var reboxValue = exports.reboxValue = function (value, isPrivate) {
+  if (isPrivate === true) return value
+
+  var o = {}
+  for (var key in value) {
+    if (key == 'content')
+      o[key] = value.cyphertext || value.content
+    else if (key != 'cyphertext' && key != 'private')
+      o[key] = value[key]
+  }
+
+  return o
+}
+
+var rebox = exports.rebox = function (data, isPrivate) {
+  return isPrivate === true ? data : {
+    key: data.key, value: reboxValue(data.value, isPrivate),
+    timestamp: data.timestamp
+  }
+}
+
+exports.Format =
+exports.formatStream = function (keys, values, isPrivate) {
+  if('boolean' !== typeof isPrivate) throw new Error('isPrivate must be explicit')
   return Map(function (data) {
     if(data.sync) return data
-    return keys && values ? data.value : keys ? data.value.key : data.value.value
+    return keys && values ? rebox(data.value, isPrivate) : keys ? data.value.key : reboxValue(data.value.value, isPrivate)
   })
 }
 
